@@ -25,5 +25,5 @@ extension Book {
     @NSManaged public var title: String?
     @NSManaged public var weeksOnList: Int16
     @NSManaged public var category: Category?
-
+    
 }

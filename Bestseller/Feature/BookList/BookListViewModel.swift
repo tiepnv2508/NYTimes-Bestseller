@@ -12,6 +12,7 @@ import CoreData
 class BookListViewModel: NSObject {
     let bookListCellIdentifier: String
     let category: Category
+    let categoryCode: String
     let updatedResultController: Dynamic<Bool>
     var orderBy: String {
         didSet {
@@ -29,7 +30,7 @@ class BookListViewModel: NSObject {
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: String(describing: Book.self))
         let isAscending = self.orderBy == GlobalConstants.kOrderByRank ? true : false
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: self.orderBy, ascending: isAscending)]
-        fetchRequest.predicate = NSPredicate(format: "category.nameEncoded == %@", category.nameEncoded!)
+        fetchRequest.predicate = NSPredicate(format: "category.nameEncoded == %@", categoryCode)
         let frc = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: CoreDataStack.sharedInstance.persistentContainer.viewContext, sectionNameKeyPath: nil, cacheName: nil)
         return frc
     }()
@@ -39,6 +40,7 @@ class BookListViewModel: NSObject {
     init(_ category: Category) {
         self.bookListCellIdentifier = "BookListCellIdentifier"
         self.category = category
+        self.categoryCode = category.nameEncoded!
         self.updatedResultController = Dynamic(false)
         self.orderBy = UserDefaults.standard.string(forKey: GlobalConstants.kOrderBy) ?? GlobalConstants.kOrderByRank
     }
@@ -47,12 +49,15 @@ class BookListViewModel: NSObject {
     
     private func updateBookList() {
         let service = APIService()
-        let categoryCode = self.category.nameEncoded!
         service.getBookListsWith(category: categoryCode, completion: { [weak self](result) in
             switch result {
             case .Success(let results):
                 self?.clearData()
                 self?.saveToCoreDataWith(array: results)
+                // execute update book list in the next 7 days
+                DispatchQueue.main.asyncAfter(deadline: .now() + 604800) { [weak self] in
+                    self?.updateBookList()
+                }
             case .Error(let error):
                 print(error)
             }
@@ -65,9 +70,14 @@ class BookListViewModel: NSObject {
             //then pull data from server and update local data.
             if lastUpdate.isOutOfDate() {
                 return true
+            } else {
+                // execute update book list when reach 7 days from the last update
+                let offsetTime = 604800 - lastUpdate.diffInSec()
+                DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(offsetTime)) { [weak self] in
+                    self?.updateBookList()
+                }
             }
         } else {
-            //First time using app, pull data from server and save data locally
             return true
         }
         return false
@@ -117,7 +127,7 @@ class BookListViewModel: NSObject {
         do {
             let context = CoreDataStack.sharedInstance.persistentContainer.viewContext
             let fetchRequest: NSFetchRequest<NSFetchRequestResult> = Book.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "category.nameEncoded == %@", category.nameEncoded!)
+            fetchRequest.predicate = NSPredicate(format: "category.nameEncoded == %@", categoryCode)
             do {
                 let objects  = try context.fetch(fetchRequest) as? [NSManagedObject]
                 _ = objects.map{$0.map{context.delete($0)}}

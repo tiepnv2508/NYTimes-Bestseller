@@ -14,4 +14,8 @@ extension Date {
         if diffInDays ?? 0 >= 7 { return true }
         return false
     }
+    
+    func diffInSec() -> Int {
+        return Calendar.current.dateComponents([.second], from: self, to: Date()).second ?? 0
+    }
 }

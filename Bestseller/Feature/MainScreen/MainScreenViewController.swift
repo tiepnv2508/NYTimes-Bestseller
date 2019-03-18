@@ -21,6 +21,20 @@ class MainScreenViewController: UIViewController {
         self.setupUI()
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if viewModel.isQueueSuspended {
+            viewModel.dispatchQueue.resume()
+            viewModel.isQueueSuspended = false
+        }
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        viewModel.dispatchQueue.suspend()
+        viewModel.isQueueSuspended = true
+    }
+    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let bookListVC = segue.destination as! BookListViewController
         let selectedIndex = self.tableView.indexPathForSelectedRow!

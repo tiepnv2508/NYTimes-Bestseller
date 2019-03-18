@@ -12,6 +12,8 @@ import CoreData
 class MainScreenViewModel: NSObject {
     let categoryCellIdentifier: String
     var onErrorHandling : ((String?) -> Void)?
+    let dispatchQueue: DispatchQueue
+    var isQueueSuspended: Bool
     
     lazy var resultController: NSFetchedResultsController<NSFetchRequestResult> = {
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: String(describing: Category.self))
@@ -24,6 +26,8 @@ class MainScreenViewModel: NSObject {
     
     override init() {
         self.categoryCellIdentifier = "CategoryCellIdentifier"
+        self.dispatchQueue = DispatchQueue(label: "mainScreenQueue")
+        self.isQueueSuspended = false
     }
     
     // MARK: -  Data
@@ -35,6 +39,10 @@ class MainScreenViewModel: NSObject {
             case .Success(let results):
                 self?.clearData()
                 self?.saveToCoreDataWith(array: results)
+                // execute update categories in the next 7 days
+                self?.dispatchQueue.asyncAfter(deadline: .now() + 604800) { [weak self] in
+                    self?.updateCategories()
+                }
             case .Error(let error):
                 self?.onErrorHandling?(error)
             }
@@ -46,6 +54,12 @@ class MainScreenViewModel: NSObject {
             //If the last time update local data >= 7 days, then update local data.
             if lastUpdate.isOutOfDate() {
                 return true
+            } else {
+                // execute update categories when reach 7 days from the last update
+                let offsetTime = 604800 - lastUpdate.diffInSec()
+                self.dispatchQueue.asyncAfter(deadline: .now() + .seconds(offsetTime)) { [weak self] in
+                    self?.updateCategories()
+                }
             }
         } else {
             //First time using app, pull data from server and save data locally

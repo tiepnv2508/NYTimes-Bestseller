@@ -9,13 +9,29 @@
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "Bestseller/Feature/MainScreen/MainScreenViewController.swift"
-            timestampString = "574241479.839008"
+            filePath = "Bestseller/Service/APIService.swift"
+            timestampString = "574642788.255995"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "37"
-            endingLineNumber = "37"
-            landmarkName = "setupUI()"
+            startingLineNumber = "17"
+            endingLineNumber = "17"
+            landmarkName = "getBookCategories(completion:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Bestseller/Service/APIService.swift"
+            timestampString = "574642788.2563519"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "43"
+            endingLineNumber = "43"
+            landmarkName = "getBookListsWith(category:completion:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

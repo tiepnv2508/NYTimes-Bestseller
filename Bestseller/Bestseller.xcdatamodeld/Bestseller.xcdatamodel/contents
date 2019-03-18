@@ -16,7 +16,7 @@
         <attribute name="updatedTime" optional="YES" attributeType="Date" usesScalarValueType="NO" syncable="YES"/>
     </entity>
     <elements>
-        <element name="Book" positionX="-54" positionY="-9" width="128" height="163"/>
+        <element name="Book" positionX="-54" positionY="-9" width="128" height="165"/>
         <element name="Category" positionX="264.85546875" positionY="66.29296875" width="128" height="88"/>
     </elements>
 </model>
