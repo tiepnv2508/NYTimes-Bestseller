@@ -17,6 +17,7 @@ class BookListViewModel: NSObject {
     
     let reachability = Reachability()!
     var isPendingUpdate = false
+    var shouldRetry = false
     
     var orderBy: String {
         didSet {
@@ -68,10 +69,12 @@ class BookListViewModel: NSObject {
         
         switch reachability.connection {
         case .wifi, .cellular:
-            if isPendingUpdate {
+            if isPendingUpdate && shouldRetry {
                 self.updateBookList()
             }
+            shouldRetry = false
         case .none:
+            shouldRetry = true
             print("Network not reachable")
         }
     }
