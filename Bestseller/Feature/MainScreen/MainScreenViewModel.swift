@@ -15,6 +15,9 @@ class MainScreenViewModel: NSObject {
     let dispatchQueue: DispatchQueue
     var isQueueSuspended: Bool
     
+    let reachability = Reachability()!
+    var isPendingUpdate = false
+    
     lazy var resultController: NSFetchedResultsController<NSFetchRequestResult> = {
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: String(describing: Category.self))
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
@@ -28,11 +31,39 @@ class MainScreenViewModel: NSObject {
         self.categoryCellIdentifier = "CategoryCellIdentifier"
         self.dispatchQueue = DispatchQueue(label: "mainScreenQueue")
         self.isQueueSuspended = false
+        super.init()
+        self.setupReachability()
+    }
+    
+    // MARK: -  Setup Reachability
+    
+    private func setupReachability() {
+        NotificationCenter.default.addObserver(self, selector: #selector(reachabilityChanged(note:)), name: .reachabilityChanged, object: reachability)
+        do{
+            try reachability.startNotifier()
+        }catch{
+            print("could not start reachability notifier")
+        }
+    }
+    
+    @objc func reachabilityChanged(note: Notification) {
+        
+        let reachability = note.object as! Reachability
+        
+        switch reachability.connection {
+        case .wifi, .cellular:
+            if isPendingUpdate && !isQueueSuspended {
+                self.updateCategories()
+            }
+        case .none:
+            print("Network not reachable")
+        }
     }
     
     // MARK: -  Data
     
     private func updateCategories() {
+        isPendingUpdate = true
         let service = APIService()
         service.getBookCategories { [weak self](result) in
             switch result {
@@ -43,6 +74,7 @@ class MainScreenViewModel: NSObject {
                 self?.dispatchQueue.asyncAfter(deadline: .now() + 604800) { [weak self] in
                     self?.updateCategories()
                 }
+                self?.isPendingUpdate = false
             case .Error(let error):
                 self?.onErrorHandling?(error)
             }
@@ -114,5 +146,12 @@ class MainScreenViewModel: NSObject {
                 print("ERROR DELETING : \(error)")
             }
         }
+    }
+    
+    // MARK: -  deinit
+    
+    deinit {
+        reachability.stopNotifier()
+        NotificationCenter.default.removeObserver(self, name: .reachabilityChanged, object: reachability)
     }
 }

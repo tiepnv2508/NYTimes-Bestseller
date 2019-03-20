@@ -14,6 +14,10 @@ class BookListViewModel: NSObject {
     let category: Category
     let categoryCode: String
     let updatedResultController: Dynamic<Bool>
+    
+    let reachability = Reachability()!
+    var isPendingUpdate = false
+    
     var orderBy: String {
         didSet {
             let isAscending = self.orderBy == GlobalConstants.kOrderByRank ? true : false
@@ -43,11 +47,39 @@ class BookListViewModel: NSObject {
         self.categoryCode = category.nameEncoded!
         self.updatedResultController = Dynamic(false)
         self.orderBy = UserDefaults.standard.string(forKey: GlobalConstants.kOrderBy) ?? GlobalConstants.kOrderByRank
+        super.init()
+        setupReachability()
+    }
+    
+    // MARK: -  Setup Reachability
+    
+    private func setupReachability() {
+        NotificationCenter.default.addObserver(self, selector: #selector(reachabilityChanged(note:)), name: .reachabilityChanged, object: reachability)
+        do{
+            try reachability.startNotifier()
+        }catch{
+            print("could not start reachability notifier")
+        }
+    }
+    
+    @objc func reachabilityChanged(note: Notification) {
+        
+        let reachability = note.object as! Reachability
+        
+        switch reachability.connection {
+        case .wifi, .cellular:
+            if isPendingUpdate {
+                self.updateBookList()
+            }
+        case .none:
+            print("Network not reachable")
+        }
     }
     
     // MARK: -  Data
     
     private func updateBookList() {
+        isPendingUpdate = true
         let service = APIService()
         service.getBookListsWith(category: categoryCode, completion: { [weak self](result) in
             switch result {
@@ -58,6 +90,7 @@ class BookListViewModel: NSObject {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 604800) { [weak self] in
                     self?.updateBookList()
                 }
+                self?.isPendingUpdate = false
             case .Error(let error):
                 print(error)
             }
@@ -136,5 +169,12 @@ class BookListViewModel: NSObject {
                 print("ERROR DELETING : \(error)")
             }
         }
+    }
+    
+    // MARK: -  deinit
+    
+    deinit {
+        reachability.stopNotifier()
+        NotificationCenter.default.removeObserver(self, name: .reachabilityChanged, object: reachability)
     }
 }
